@@ -1,0 +1,40 @@
+[package]
+name = "mechanical"
+version = "0.1.0"
+authors = ["WuChanGG <krulex.em@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[dependencies]
+raw-window-handle = "0.3.3"
+glib = "0.10.3"
+conrod_core = "0.71.0"
+conrod_derive = "0.71.0"
+glium = "0.28"
+conrod_glium = "0.71.0"
+gstreamer = "0.16.5"
+gstreamer-audio = "0.16.5"
+gstreamer-video = "0.16.5"
+gstreamer-app = "0.16.5"
+gstreamer-pbutils = "0.16.5"
+byte-slice-cast = "1"
+anyhow = "1"
+conrod_example_shared = "0.71.0"
+conrod_winit = "0.71.0"
+find_folder = "0.3.0"
+image = "0.22"
+petgraph = "0.4"
+rand = "0.7"
+winit = "0.23"
+
+#[dependencies.iced]
+#version = "0.2.0"
+#features = ["canvas", "tokio", "debug"]
+
+#[dependencies.gtk]
+#version = "0.9.0"
+#features = ["v3_16"]
+
+#[dependencies.gio]
+#version = ""
+#features = ["v2_44"]
