@@ -290,109 +290,111 @@ pub mod media_player {
 
         let playbin = 
             gstreamer::ElementFactory::make("playbin", None).unwrap_or_else(|err| {
-                println!("{:?}", err);
-                panic!();
-            });
+            println!("{:?}", err);
+            panic!();
+        });
+
+        let video_overlay = playbin
+            .clone()
+            .dynamic_cast::<gstreamer_video::VideoOverlay>()
+            .unwrap();
+
+        unsafe {
+            let rwh = display.gl_window().window().raw_window_handle();
+            let hwnd = match rwh {
+                raw_window_handle::RawWindowHandle::Windows(windows_handle) => Some(windows_handle.hwnd),
+                _ => None
+            };
+            let x = video_overlay.set_window_handle(hwnd.unwrap() as usize);
+        }
+
         playbin.set_property("uri", &uri).unwrap_or_else(|err| {
             println!("{:?}", err);
         });
 
-        // playbin
-        //     .connect("video-tags-changed", false, |args| {
-        //         let pipeline = args[0]
-        //             .get::<gstreamer::Element>()
-        //             .expect("playbin \"video-tags-changed\" args[0]")
-        //             .unwrap();
-        //         post_app_message(&pipeline);
-        //         None
-        //     })
-        //     .unwrap();
+        playbin
+            .connect("video-tags-changed", false, |args| {
+                let pipeline = args[0]
+                    .get::<gstreamer::Element>()
+                    .expect("playbin \"video-tags-changed\" args[0]")
+                    .unwrap();
+                post_app_message(&pipeline);
+                None
+            })
+            .unwrap();
 
-        // playbin
-        //     .connect("audio-tags-changed", false, |args| {
-        //         let pipeline = args[0]
-        //             .get::<gstreamer::Element>()
-        //             .expect("playbin \"audio-tags-changed\" args[0]")
-        //             .unwrap();
-        //         post_app_message(&pipeline);
-        //         None
-        //     })
-        //     .unwrap();
+        playbin
+            .connect("audio-tags-changed", false, |args| {
+                let pipeline = args[0]
+                    .get::<gstreamer::Element>()
+                    .expect("playbin \"audio-tags-changed\" args[0]")
+                    .unwrap();
+                post_app_message(&pipeline);
+                None
+            })
+            .unwrap();
 
-        // playbin
-        //     .connect("text-tags-changed", false, move |args| {
-        //         let pipeline = args[0]
-        //             .get::<gstreamer::Element>()
-        //             .expect("playbin \"text-tags-changed\" args[0]")
-        //             .unwrap();
-        //         post_app_message(&pipeline);
-        //         None
-        //     })
-        //     .unwrap();
+        playbin
+            .connect("text-tags-changed", false, move |args| {
+                let pipeline = args[0]
+                    .get::<gstreamer::Element>()
+                    .expect("playbin \"text-tags-changed\" args[0]")
+                    .unwrap();
+                post_app_message(&pipeline);
+                None
+            })
+            .unwrap();
 
-        // let video_overlay = playbin
-        //     .clone()
-        //     .dynamic_cast::<gstreamer_video::VideoOverlay>()
-        //     .unwrap();
-
-        // unsafe {
-        //     let rwh = display.gl_window().window().raw_window_handle();
-        //     let hwnd = match rwh {
-        //         raw_window_handle::RawWindowHandle::Windows(windows_handle) => Some(windows_handle.hwnd),
-        //         _ => None
-        //     };
-        //     video_overlay.set_window_handle(hwnd.unwrap() as usize);
-        // }
         
-        // let bus = playbin.get_bus().unwrap();
-        // bus.add_signal_watch();
+        let bus = playbin.get_bus().unwrap();
+        bus.add_signal_watch();
 
-        // let pipeline_weak = playbin.downgrade();
-        // bus.connect_message(move |_, msg| {
-        //     let pipeline = match pipeline_weak.upgrade() {
-        //             Some(pipeline) => pipeline,
-        //             None => return,
-        //         };
+        let pipeline_weak = playbin.downgrade();
+        bus.connect_message(move |_, msg| {
+            let pipeline = match pipeline_weak.upgrade() {
+                    Some(pipeline) => pipeline,
+                    None => return,
+                };
 
-        //         match msg.view() {
-        //             //  This is called when an End-Of-Stream message is posted on the bus.
-        //             // We just set the pipeline to READY (which stops playback).
-        //             gstreamer::MessageView::Eos(..) => {
-        //                 println!("End-Of-Stream reached.");
-        //                 pipeline
-        //                     .set_state(gstreamer::State::Ready)
-        //                     .expect("Unable to set the pipeline to the `Ready` state");
-        //             }
+                match msg.view() {
+                    //  This is called when an End-Of-Stream message is posted on the bus.
+                    // We just set the pipeline to READY (which stops playback).
+                    gstreamer::MessageView::Eos(..) => {
+                        println!("End-Of-Stream reached.");
+                        pipeline
+                            .set_state(gstreamer::State::Ready)
+                            .expect("Unable to set the pipeline to the `Ready` state");
+                    }
 
-        //             // This is called when an error message is posted on the bus
-        //             gstreamer::MessageView::Error(err) => {
-        //                 println!(
-        //                     "Error from {:?}: {} ({:?})",
-        //                     err.get_src().map(|s| s.get_path_string()),
-        //                     err.get_error(),
-        //                     err.get_debug()
-        //                 );
-        //             }
-        //             // This is called when the pipeline changes states. We use it to
-        //             // keep track of the current state.
-        //             gstreamer::MessageView::StateChanged(state_changed) => {
-        //                 if state_changed
-        //                     .get_src()
-        //                     .map(|s| s == pipeline)
-        //                     .unwrap_or(false)
-        //                 {
-        //                     println!("State set to {:?}", state_changed.get_current());
-        //                 }
-        //             }
-        //             _ => (),
-        //         }
-        // });
+                    // This is called when an error message is posted on the bus
+                    gstreamer::MessageView::Error(err) => {
+                        println!(
+                            "Error from {:?}: {} ({:?})",
+                            err.get_src().map(|s| s.get_path_string()),
+                            err.get_error(),
+                            err.get_debug()
+                        );
+                    }
+                    // This is called when the pipeline changes states. We use it to
+                    // keep track of the current state.
+                    gstreamer::MessageView::StateChanged(state_changed) => {
+                        if state_changed
+                            .get_src()
+                            .map(|s| s == pipeline)
+                            .unwrap_or(false)
+                        {
+                            println!("State set to {:?}", state_changed.get_current());
+                        }
+                    }
+                    _ => (),
+                }
+        });
 
-        // playbin
-        //     .set_state(gstreamer::State::Playing)
-        //     .expect("Unable to set the playbin to the 'Playing State'");
+        playbin
+            .set_state(gstreamer::State::Playing)
+            .expect("Unable to set the playbin to the 'Playing State'");
         
-        // bus.remove_signal_watch();
+        bus.remove_signal_watch();
     }
 
     // We are possibly in a GStreamer working thread, so we notify the main
